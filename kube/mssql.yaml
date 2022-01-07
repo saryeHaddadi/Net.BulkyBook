@@ -26,10 +26,10 @@ spec:
         required:
             nodeSelectorTerms:
             - matchExpressions:
-                key: kubernetes.io/hostname
-                operator: In
-                values:
-                - master
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                  - master
 ---
 apiVersion: v1
 kind: Secret
