@@ -7,8 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkyBookWeb", "BulkyBookWe
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B98F3009-E141-44DE-8898-B5389238CC9A}"
 	ProjectSection(SolutionItems) = preProject
+		mssql.yaml = mssql.yaml
 		README.md = README.md
-		SqlServer.yaml = SqlServer.yaml
 	EndProjectSection
 EndProject
 Global
