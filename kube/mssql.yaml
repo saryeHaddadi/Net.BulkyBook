@@ -30,7 +30,6 @@ spec:
                 operator: In
                 values:
                 - master
-
 ---
 apiVersion: v1
 kind: Secret
