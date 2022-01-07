@@ -1,8 +1,28 @@
-# Liste of Manifests
-# - Secret
-# - ConfigMap
-# - Deployment
-# - PersistentVolumeClaim
+# Manifests list
+# - StorageClass, PersistentVolume
+# - Secret, ConfigMap, Deployment, PersistentVolumeClaim
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+    name: mssql-data-pv
+spec:
+    storageClassName: local-storage
+    capacity:
+        storage: 8Gi
+    volumeMode: Filesystem
+    accessModes:
+    - ReadWriteOnce
+    persistentVolumeReclaimPolicy: Retain
+    local:
+        path: /home/azureuser/volumes/mssql-data
+---
 apiVersion: v1
 kind: Secret
 stringData:
@@ -54,42 +74,18 @@ spec:
               persistentVolumeClaim:
                 claimName: mssql-data
 ---
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: local-WaitForFirstConsumer
-provisioner: kubernetes.io/gce-pd
-parameters:
-  type: pd-standard
-volumeBindingMode: WaitForFirstConsumer
----
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
     name: mssql-data
 spec:
+    storageClassName: local-storage
     accessModes:
     - ReadWriteOnce
     resources:
         requests:
             storage: 8Gi
 ---
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: mssql-data-pv
-spec:
-  capacity:
-    storage: 8Gi
-  volumeMode: Filesystem
-  accessModes:
-  - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  #storageClassName: local-storage
-  local:
-    path: /mnt/disks/ssd1
----
-# Create the load balancing service
 apiVersion: v1
 kind: Service
 metadata:
@@ -99,7 +95,7 @@ spec:
         app: mssql
     ports:
         - protocol: TCP
-            port: 1433
-            targetPort: 1433
-            nodePort: 32000
+          port: 1433
+          targetPort: 1433
+          nodePort: 32000
     type: NodePort
