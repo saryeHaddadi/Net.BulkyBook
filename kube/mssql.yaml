@@ -22,11 +22,20 @@ spec:
     persistentVolumeReclaimPolicy: Retain
     local:
         path: /home/azureuser/volumes/mssql-data
+    nodeAffinity:
+        required:
+            nodeSelectorTerms:
+            - matchExpressions:
+                key: kubernetes.io/hostname
+                operator: In
+                values:
+                - master
+
 ---
 apiVersion: v1
 kind: Secret
 stringData:
-    MSSQL_SA_PASSWORD: 111111
+    MSSQL_SA_PASSWORD: "111111"
 metadata:
     name: mssql-secret
 type: Opaque
