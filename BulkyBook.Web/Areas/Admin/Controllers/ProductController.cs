@@ -1,5 +1,6 @@
 ﻿using BulkyBook.DataAccess.IRepositories;
 using BulkyBook.Models;
+using BulkyBook.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
@@ -25,47 +26,48 @@ public class ProductController : Controller
 	[HttpGet]
 	public IActionResult Upsert(int? id)
 	{
-		var product = new Product();
-		var categoryList = _unitOfWork.Category.GetAll().Select(
-			u => new SelectListItem
+		ProductViewModel productVM = new ProductViewModel()
+		{
+			Product = new(),
+			CategoryList = _unitOfWork.Category.GetAll().Select(x => new SelectListItem
 			{
-				Text = u.Name,
-				Value = u.Id.ToString()
-			});
-		var coverTypeList = _unitOfWork.CoverType.GetAll().Select(
-			u => new SelectListItem
+				Text = x.Name,
+				Value = x.Id.ToString()
+			}),
+			CoverTypeList = _unitOfWork.CoverType.GetAll().Select(x => new SelectListItem
 			{
-				Text = u.Name,
-				Value = u.Id.ToString()
-			});
+				Text = x.Name,
+				Value = x.Id.ToString()
+			})
+		};
 
 		if (id is null || id == 0)
 		{
 			// Create Product
-			ViewBag.CategoryList = categoryList;
-			ViewData["CoverTypeList"] = coverTypeList;
-			return View(product);
+			//ViewBag.CategoryList = categoryList;
+			//ViewData["CoverTypeList"] = coverTypeList;
+			return View(productVM);
 		}
 		else
 		{
 			// Update Product
 		}
 
-		return View(product);
+		return View(productVM);
 	}
 
 	[HttpPost]
 	[ValidateAntiForgeryToken]
-	public IActionResult Upsert(Product Product)
+	public IActionResult Upsert(ProductViewModel productVM, IFormFile file)
 	{
 		if (ModelState.IsValid)
 		{
-			_unitOfWork.Product.Update(Product);
+			//_unitOfWork.Product.Update(Product);
 			_unitOfWork.Save();
 			TempData["success"] = "Product edited successfully";
 			return RedirectToAction("Index");
 		}
-		return View(Product);
+		return View(productVM);
 	}
 
 	[HttpGet]
