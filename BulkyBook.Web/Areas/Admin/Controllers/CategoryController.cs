@@ -21,13 +21,12 @@ public class CategoryController : Controller
 		return View(objCategoryList);
 	}
 
-	//GET
+	[HttpGet]
 	public IActionResult Create()
 	{
 		return View();
 	}
 
-	//POST
 	[HttpPost]
 	[ValidateAntiForgeryToken]
 	public IActionResult Create(Category obj)
@@ -46,7 +45,7 @@ public class CategoryController : Controller
 		return View(obj);
 	}
 
-	//GET
+	[HttpGet]
 	public IActionResult Edit(int? id)
 	{
 		if (id == null || id == 0)
@@ -66,7 +65,6 @@ public class CategoryController : Controller
 		return View(category);
 	}
 
-	//POST
 	[HttpPost]
 	[ValidateAntiForgeryToken]
 	public IActionResult Edit(Category obj)
@@ -86,7 +84,7 @@ public class CategoryController : Controller
 	}
 
 
-	//GET
+	[HttpGet]
 	public IActionResult Delete(int? id)
 	{
 		if (id == null || id == 0)
@@ -106,7 +104,6 @@ public class CategoryController : Controller
 		return View(category);
 	}
 
-	//POST
 	[HttpPost, ActionName("Delete")]
 	[ValidateAntiForgeryToken]
 	public IActionResult DeletePOST(int? id)
