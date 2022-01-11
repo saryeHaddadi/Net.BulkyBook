@@ -58,6 +58,13 @@
             </select>
             <span asp-validation-for="CategoryId" class="text-danger"></span>
         </div>
+        <div class="mb-3">
+            <label asp-for="CoverTypeId"></label>
+            <select asp-for="CoverTypeId" asp-items="@(ViewData["CoverTypeList"]) as IEnumerable<SelectListItem>" class="form-select">
+                <option disabled selected>--Select Cover Type--</option>
+            </select>
+            <span asp-validation-for="CoverTypeId" class="text-danger"></span>
+        </div>
         <button type="submit" class="btn btn-primary" style="width:150px">Save</button>
         <a asp-controller="Product" asp-action="Index" class="btn btn-secondary" style="width:150px">Back to List</a>
     </div>

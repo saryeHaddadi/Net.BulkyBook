@@ -43,6 +43,7 @@ public class ProductController : Controller
 		{
 			// Create Product
 			ViewBag.CategoryList = categoryList;
+			ViewData["CoverTypeList"] = coverTypeList;
 			return View(product);
 		}
 		else
