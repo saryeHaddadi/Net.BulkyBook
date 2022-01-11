@@ -7,16 +7,16 @@ namespace BulkyBook.Web.Controllers;
 
 public class CategoryController : Controller
 {
-	private readonly ICategoryRepository _db;
+	private readonly IUnitOfWork _unitOfWork;
 
-	public CategoryController(ICategoryRepository db)
+	public CategoryController(IUnitOfWork unitOfWork)
 	{
-			_db = db;
+		_unitOfWork = unitOfWork;
 	}
 
 	public IActionResult Index()
 	{
-		IEnumerable<Category> objCategoryList = _db.GetAll();
+		IEnumerable<Category> objCategoryList = _unitOfWork.Category.GetAll();
 		return View(objCategoryList);
 	}
 
@@ -37,8 +37,8 @@ public class CategoryController : Controller
 		}
 		if (ModelState.IsValid)
 		{
-			_db.Add(obj);
-			_db.Save();
+			_unitOfWork.Category.Add(obj);
+			_unitOfWork.Save();
 			TempData["success"] = "Category created successfully";
 			return RedirectToAction("Index");
 		}
@@ -53,7 +53,7 @@ public class CategoryController : Controller
 			return NotFound();
 		}
 
-		var category = _db.GetFirstOrDefault(c => c.Id == id);
+		var category = _unitOfWork.Category.GetFirstOrDefault(c => c.Id == id);
 		//var category = _db.Categories.SingleOrDefault(c => c.Id == id);
 		//var category = _db.Categories.Find(id);
 
@@ -76,8 +76,8 @@ public class CategoryController : Controller
 		}
 		if (ModelState.IsValid)
 		{
-			_db.Update(obj);
-			_db.Save();
+			_unitOfWork.Category.Update(obj);
+			_unitOfWork.Save();
 			TempData["success"] = "Category updated successfully";
 			return RedirectToAction("Index");
 		}
@@ -93,7 +93,7 @@ public class CategoryController : Controller
 			return NotFound();
 		}
 
-		var category = _db.GetFirstOrDefault(c => c.Id == id);
+		var category = _unitOfWork.Category.GetFirstOrDefault(c => c.Id == id);
 		//var category = _db.Categories.SingleOrDefault(c => c.Id == id);
 		//var category = _db.Categories.Find(id);
 
@@ -111,13 +111,13 @@ public class CategoryController : Controller
 	public IActionResult DeletePOST(int? id)
 	{
 
-		var obj = _db.GetFirstOrDefault(c => c.Id == id);
+		var obj = _unitOfWork.Category.GetFirstOrDefault(c => c.Id == id);
 		if (obj == null)
 		{
 			return NotFound();
 		}
-		_db.Remove(obj);
-		_db.Save();
+		_unitOfWork.Category.Remove(obj);
+		_unitOfWork.Save();
 		TempData["success"] = "Category deleted successfully";
 		return RedirectToAction("Index");
 

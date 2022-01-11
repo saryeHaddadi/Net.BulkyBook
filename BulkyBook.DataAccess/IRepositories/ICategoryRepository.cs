@@ -11,5 +11,4 @@ namespace BulkyBook.DataAccess.IRepositories;
 public interface ICategoryRepository : IRepository<Category>
 {
 	void Update(Category obj);
-	void Save();
 }
