@@ -10,10 +10,12 @@ namespace BulkyBook.Web.Areas.Admin.Controllers;
 public class ProductController : Controller
 {
 	private readonly IUnitOfWork _unitOfWork;
+	private readonly IWebHostEnvironment _hostEnvironment;
 
-	public ProductController(IUnitOfWork unitOfWork)
+	public ProductController(IUnitOfWork unitOfWork, IWebHostEnvironment hostEnvironment)
 	{
 		_unitOfWork = unitOfWork;
+		_hostEnvironment = hostEnvironment;
 	}
 
 	public IActionResult Index()
@@ -26,7 +28,7 @@ public class ProductController : Controller
 	[HttpGet]
 	public IActionResult Upsert(int? id)
 	{
-		ProductViewModel productVM = new ProductViewModel()
+		var productVM = new ProductViewModel()
 		{
 			Product = new(),
 			CategoryList = _unitOfWork.Category.GetAll().Select(x => new SelectListItem
@@ -62,11 +64,44 @@ public class ProductController : Controller
 	{
 		if (ModelState.IsValid)
 		{
-			//_unitOfWork.Product.Update(Product);
+			var wwwRootPath = _hostEnvironment.WebRootPath;
+			var targetDirectory = @"images\products";
+
+			if (file is not null)
+			{
+				var fileName = Guid.NewGuid().ToString();
+				var targetRelativePath = Path.Combine(targetDirectory, fileName + Path.GetExtension(file.FileName));
+				var targetFullPath = Path.Combine(wwwRootPath, targetRelativePath);
+
+				using (var fileStream = new FileStream(targetFullPath, FileMode.Create))
+				{
+					file.CopyTo(fileStream);
+				}
+
+				productVM.Product.ImageUrl = targetRelativePath;
+			}
+
+			_unitOfWork.Product.Add(productVM.Product);
 			_unitOfWork.Save();
-			TempData["success"] = "Product edited successfully";
+			TempData["success"] = "Product created successfully";
 			return RedirectToAction("Index");
 		}
+
+
+		productVM = new ProductViewModel()
+		{
+			Product = productVM.Product,
+			CategoryList = _unitOfWork.Category.GetAll().Select(x => new SelectListItem
+			{
+				Text = x.Name,
+				Value = x.Id.ToString()
+			}),
+			CoverTypeList = _unitOfWork.CoverType.GetAll().Select(x => new SelectListItem
+			{
+				Text = x.Name,
+				Value = x.Id.ToString()
+			})
+		};
 		return View(productVM);
 	}
 
