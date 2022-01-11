@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-//using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,21 +26,20 @@ public class Product
 	public string Author { get; set; }
 
 	[Required]
-	[Range(1, 10000)]
-	//[Precision(14, 2)]
+	[Precision(18, 2)]
 	public decimal ListPrice { get; set; }
 
-	//[Required]
-	//[Range(1, 10000)]
-	//public decimal Price { get; set; }
+	[Required]
+	[Precision(18, 2)]
+	public decimal Price { get; set; }
 
-	//[Required]
-	//[Range(1, 10000)]
-	//public decimal Price50 { get; set; }
+	[Required]
+	[Precision(18, 2)]
+	public decimal Price50 { get; set; }
 
-	//[Required]
-	//[Range(1, 10000)]
-	//public decimal Price100 { get; set; }
+	[Required]
+	[Precision(18, 2)]
+	public decimal Price100 { get; set; }
 
 	public string ImageUrl { get; set; }
 
