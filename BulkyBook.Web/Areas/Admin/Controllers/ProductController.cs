@@ -3,7 +3,6 @@ using BulkyBook.Models;
 using BulkyBook.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-
 namespace BulkyBook.Web.Areas.Admin.Controllers;
 
 [Area("Admin")]
@@ -53,16 +52,16 @@ public class ProductController : Controller
 		else
 		{
 			// Update Product
+			productVM.Product = _unitOfWork.Product.GetFirstOrDefault(x => x.Id == id);
+			return View(productVM);
 		}
-
-		return View(productVM);
 	}
 
 	[HttpPost]
 	[ValidateAntiForgeryToken]
-	public IActionResult Upsert(ProductViewModel productVM, IFormFile file)
+	public IActionResult Upsert(ProductViewModel obj, IFormFile file)
 	{
-		if (ModelState.IsValid)
+		if (ModelState.IsValid || (ModelState.ErrorCount == 1 && file is null && obj.Product.ImageUrl is not null))
 		{
 			var wwwRootPath = _hostEnvironment.WebRootPath;
 			var targetDirectory = @"images\products";
@@ -73,24 +72,44 @@ public class ProductController : Controller
 				var targetRelativePath = Path.Combine(targetDirectory, fileName + Path.GetExtension(file.FileName));
 				var targetFullPath = Path.Combine(wwwRootPath, targetRelativePath);
 
-				using (var fileStream = new FileStream(targetFullPath, FileMode.Create))
+				if (obj.Product.ImageUrl is not null)
 				{
-					file.CopyTo(fileStream);
+					var oldImageFullPath = Path.Combine(wwwRootPath, obj.Product.ImageUrl.Substring(1)); // Remove leading slash, no more wwwroot's perspective
+					if (System.IO.File.Exists(oldImageFullPath))
+					{
+						System.IO.File.Delete(oldImageFullPath);
+					}
 				}
 
-				productVM.Product.ImageUrl = targetRelativePath;
+				using (var fileStream = new FileStream(targetFullPath, FileMode.Create))
+				{
+						file.CopyTo(fileStream);
+				}
+
+				obj.Product.ImageUrl = @"\" + targetRelativePath; // Convert to absult Path (wwwroot perspective)
 			}
 
-			_unitOfWork.Product.Add(productVM.Product);
+			if (obj.Product.Id == 0)
+			{
+				_unitOfWork.Product.Add(obj.Product);
+			}
+			else
+			{
+				_unitOfWork.Product.Update(obj.Product);
+			}
+
 			_unitOfWork.Save();
 			TempData["success"] = "Product created successfully";
 			return RedirectToAction("Index");
 		}
 
-
-		productVM = new ProductViewModel()
+		// Review the reload when the odel is Invalid.
+		// Main issues:
+		// - relaod the image
+		// - display the content of the dropdowns
+		obj = new ProductViewModel()
 		{
-			Product = productVM.Product,
+			Product = obj.Product,
 			CategoryList = _unitOfWork.Category.GetAll().Select(x => new SelectListItem
 			{
 				Text = x.Name,
@@ -102,7 +121,7 @@ public class ProductController : Controller
 				Value = x.Id.ToString()
 			})
 		};
-		return View(productVM);
+		return View(obj);
 	}
 
 	[HttpGet]
@@ -139,4 +158,12 @@ public class ProductController : Controller
 		return RedirectToAction("Index");
 	}
 
+	#region API Calls
+	[HttpGet]
+	public IActionResult GetAll()
+	{
+		var productList = _unitOfWork.Product.GetAll(includeProperties: new string[] {nameof(Product.Category)});
+		return Json(new { data = productList });
+	}
+	#endregion
 }

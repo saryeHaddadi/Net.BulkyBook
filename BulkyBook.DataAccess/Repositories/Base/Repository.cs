@@ -17,6 +17,7 @@ public class Repository<T> : IRepository<T> where T : class
 	public Repository(ApplicationDbContext db)
 	{
 		_db = db;
+		//_db.Products.Include(u => u.Category).Include(u => u.CoverType);
 		_dbSet = db.Set<T>();
 	}
 
@@ -25,16 +26,36 @@ public class Repository<T> : IRepository<T> where T : class
 		_dbSet.Add(entity);
 	}
 
-	public IEnumerable<T> GetAll()
+	/// <summary>
+	/// 
+	/// 
+	/// </summary>
+	/// <param name="includeProperties">Format: 'PropertyA, PropertyB, ...'</param>
+	/// <returns></returns>
+	public IEnumerable<T> GetAll(string[]? includeProperties = null)
 	{
 		IQueryable<T> query = _dbSet;
+		if (includeProperties is not null)
+		{
+			foreach(var includeProp in includeProperties)
+			{
+				query = query.Include(includeProp);	
+			}
+		}
 		return query.ToList();
 	}
 
-	public T GetFirstOrDefault(Expression<Func<T, bool>> filter)
+	public T GetFirstOrDefault(Expression<Func<T, bool>> filter, string[]? includeProperties = null)
 	{
 		IQueryable<T> query = _dbSet;
 		query = query.Where(filter);
+		if (includeProperties is not null)
+		{
+			foreach (var includeProp in includeProperties)
+			{
+				query = query.Include(includeProp);
+			}
+		}
 		return query.FirstOrDefault();
 	}
 
