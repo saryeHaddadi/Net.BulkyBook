@@ -74,11 +74,7 @@ public class ProductController : Controller
 
 				if (obj.Product.ImageUrl is not null)
 				{
-					var oldImageFullPath = Path.Combine(wwwRootPath, obj.Product.ImageUrl.Substring(1)); // Remove leading slash, no more wwwroot's perspective
-					if (System.IO.File.Exists(oldImageFullPath))
-					{
-						System.IO.File.Delete(oldImageFullPath);
-					}
+					DeleteImage(obj.Product, wwwRootPath);
 				}
 
 				using (var fileStream = new FileStream(targetFullPath, FileMode.Create))
@@ -92,14 +88,17 @@ public class ProductController : Controller
 			if (obj.Product.Id == 0)
 			{
 				_unitOfWork.Product.Add(obj.Product);
+				_unitOfWork.Save();
+				TempData["success"] = "Product created successfully";
+
 			}
 			else
 			{
 				_unitOfWork.Product.Update(obj.Product);
+				_unitOfWork.Save();
+				TempData["success"] = "Product saved successfully";
 			}
 
-			_unitOfWork.Save();
-			TempData["success"] = "Product created successfully";
 			return RedirectToAction("Index");
 		}
 
@@ -124,39 +123,6 @@ public class ProductController : Controller
 		return View(obj);
 	}
 
-	[HttpGet]
-	public IActionResult Delete(int? id)
-	{
-		if (id is null || id == 0)
-		{
-			return NotFound();
-		}
-
-		var ProductDetails = _unitOfWork.Product.GetFirstOrDefault(o => o.Id == id);
-
-		if (ProductDetails is null)
-		{
-			return NotFound();
-		}
-
-		return View(ProductDetails);
-	}
-
-	[HttpPost, ActionName("Delete")]
-	[ValidateAntiForgeryToken]
-	public IActionResult DeletePost(int? id)
-	{
-		var Product = _unitOfWork.Product.GetFirstOrDefault(c => c.Id == id);
-		if (Product is null)
-		{
-			return NotFound();
-		}
-
-		_unitOfWork.Product.Remove(Product);
-		_unitOfWork.Save();
-		TempData["success"] = "Product deleted successfully";
-		return RedirectToAction("Index");
-	}
 
 	#region API Calls
 	[HttpGet]
@@ -164,6 +130,32 @@ public class ProductController : Controller
 	{
 		var productList = _unitOfWork.Product.GetAll(includeProperties: new string[] {nameof(Product.Category)});
 		return Json(new { data = productList });
+	}
+
+	[HttpDelete]
+	public IActionResult Delete(int? id)
+	{
+		var product = _unitOfWork.Product.GetFirstOrDefault(c => c.Id == id);
+		if (product is null)
+		{
+			return Json(new { success = false, message = "Error while deleting" });
+		}
+
+		DeleteImage(product, _hostEnvironment.WebRootPath);
+		_unitOfWork.Product.Remove(product);
+		_unitOfWork.Save();
+		return Json(new { success = true, message = "Product deleted successfully" });
+	}
+	#endregion
+
+	#region util functions
+	private static void DeleteImage(Product product, string wwwRootPath)
+	{
+		var oldImageFullPath = Path.Combine(wwwRootPath, product.ImageUrl.Substring(1)); // Remove leading slash, no more wwwroot's perspective
+		if (System.IO.File.Exists(oldImageFullPath))
+		{
+			System.IO.File.Delete(oldImageFullPath);
+		}
 	}
 	#endregion
 }
