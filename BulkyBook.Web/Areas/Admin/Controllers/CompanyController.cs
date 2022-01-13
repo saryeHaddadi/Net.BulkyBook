@@ -40,6 +40,39 @@ public class CompanyController : Controller
 
 	}
 
+	[HttpGet]
+	public IActionResult Edit(int? id)
+	{
+		if (id is null || id == 0)
+		{
+			return NotFound();
+		}
+
+		var company = _unitOfWork.Company.GetFirstOrDefault(c => c.Id == id);
+		if (company is null)
+		{
+			return NotFound();
+		}
+
+		return View(company);
+	}
+
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public IActionResult Edit(Company company)
+	{
+		if (ModelState.IsValid)
+		{
+			_unitOfWork.Company.Update(company);
+			_unitOfWork.Save();
+			TempData["success"] = "Company edited successfully";
+			return RedirectToAction("Index");
+		}
+		return View(company);
+
+	}
+
+
 	#region API
 	[HttpGet]
 	public IActionResult GetAll()
