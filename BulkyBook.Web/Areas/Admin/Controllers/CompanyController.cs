@@ -1,4 +1,5 @@
 ﻿using BulkyBook.DataAccess.IRepositories;
+using BulkyBook.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BulkyBook.Web.Areas.Admin.Controllers;
@@ -16,6 +17,27 @@ public class CompanyController : Controller
 	public IActionResult Index()
 	{
 		return View();
+	}
+
+	[HttpGet]
+	public IActionResult Create()
+	{
+		return View();
+	}
+
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public IActionResult Create(Company company)
+	{
+		if (ModelState.IsValid)
+		{
+			_unitOfWork.Company.Add(company);
+			_unitOfWork.Save();
+			TempData["success"] = "Company created successfully";
+			return RedirectToAction("Index");
+		}
+		return View(company);
+
 	}
 
 	#region API
