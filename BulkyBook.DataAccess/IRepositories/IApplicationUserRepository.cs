@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 
 namespace BulkyBook.DataAccess.IRepositories;
 
-public interface ICategoryRepository : IRepository<Category>
+public interface IApplicationUserRepository : IRepository<ApplicationUser>
 {
-	void Update(Category obj);
 }

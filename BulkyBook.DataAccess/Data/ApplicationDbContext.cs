@@ -12,11 +12,11 @@ public class ApplicationDbContext : IdentityDbContext
 	}
 	public DbSet<ApplicationUser> ApplicationUser { get; set; }
 
-	public DbSet<Category> Categories { get; set; }
-	public DbSet<CoverType> CoverTypes { get; set; }
+	public DbSet<Category> Category { get; set; }
+	public DbSet<CoverType> CoverType { get; set; }
 	public DbSet<Product> Products { get; set; }
 	public DbSet<Company> Company { get; set; }
-
+	public DbSet<ShoppingCart> ShoppingCart { get; set; }
 
 }
 

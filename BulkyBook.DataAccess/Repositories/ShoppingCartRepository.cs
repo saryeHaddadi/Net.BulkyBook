@@ -9,17 +9,13 @@ using System.Threading.Tasks;
 
 namespace BulkyBook.DataAccess.Repositories;
 
-public class CoverTypeRepository : Repository<CoverType>, ICoverTypeRepository
+public class ShoppingCartRepository : Repository<ShoppingCart>, IShoppingCartRepository
 {
 	private ApplicationDbContext _db;
 
-	public CoverTypeRepository(ApplicationDbContext db) : base(db)
+	public ShoppingCartRepository(ApplicationDbContext db) : base(db)
 	{
 		_db = db;
 	}
 
-	public void Update(CoverType obj)
-	{
-		_db.CoverType.Update(obj);
-	}
 }
