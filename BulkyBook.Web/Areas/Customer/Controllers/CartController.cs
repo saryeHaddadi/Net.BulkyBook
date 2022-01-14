@@ -29,12 +29,13 @@ public class CartController : Controller
 		{
 			ListCart = _unitOfWork.ShoppingCart.GetAll(
 				u => u.ApplicationUserId == claim.Value,
-				includeProperties: new string[] { nameof(Product) })
+				includeProperties: new string[] { nameof(Product) }),
+			OrderHeader = new()
 		};
 		foreach(var cartItem in _shoppingCartVM.ListCart)
 		{
 			cartItem.Price = GetPriceBasedOnQuantity(cartItem.Count, cartItem.Product.Price, cartItem.Product.Price50, cartItem.Product.Price100);
-			_shoppingCartVM.CartTotal += cartItem.Price * cartItem.Count;
+			_shoppingCartVM.OrderHeader.OrderTotal += cartItem.Price * cartItem.Count;
 		}
 
 		return View(_shoppingCartVM);
@@ -42,23 +43,32 @@ public class CartController : Controller
 
 	public IActionResult Summary()
 	{
-		//var claimsIdentity = (ClaimsIdentity)User.Identity;
-		//var claim = claimsIdentity.FindFirst(ClaimTypes.NameIdentifier);
+		var claimsIdentity = (ClaimsIdentity)User.Identity;
+		var claim = claimsIdentity.FindFirst(ClaimTypes.NameIdentifier);
 
-		//_shoppingCartVM = new ShoppingCartViewModel()
-		//{
-		//	ListCart = _unitOfWork.ShoppingCart.GetAll(
-		//		u => u.ApplicationUserId == claim.Value,
-		//		includeProperties: new string[] { nameof(Product) })
-		//};
-		//foreach (var cartItem in _shoppingCartVM.ListCart)
-		//{
-		//	cartItem.Price = GetPriceBasedOnQuantity(cartItem.Count, cartItem.Product.Price, cartItem.Product.Price50, cartItem.Product.Price100);
-		//	_shoppingCartVM.CartTotal += cartItem.Price * cartItem.Count;
-		//}
+		_shoppingCartVM = new ShoppingCartViewModel()
+		{
+			ListCart = _unitOfWork.ShoppingCart.GetAll(
+				u => u.ApplicationUserId == claim.Value,
+				includeProperties: new string[] { nameof(Product) }),
+			OrderHeader = new()
+		};
 
-		//return View(_shoppingCartVM);
-		return View();
+		_shoppingCartVM.OrderHeader.ApplicationUser = _unitOfWork.ApplicationUser.GetFirstOrDefault(u => u.Id == claim.Value);
+		_shoppingCartVM.OrderHeader.Name = _shoppingCartVM.OrderHeader.ApplicationUser.Name;
+		_shoppingCartVM.OrderHeader.PhoneNumber = _shoppingCartVM.OrderHeader.ApplicationUser.PhoneNumber;
+		_shoppingCartVM.OrderHeader.StreetAdresse = _shoppingCartVM.OrderHeader.ApplicationUser.StreetAdresse;
+		_shoppingCartVM.OrderHeader.City = _shoppingCartVM.OrderHeader.ApplicationUser.City;
+		_shoppingCartVM.OrderHeader.State = _shoppingCartVM.OrderHeader.ApplicationUser.State;
+		_shoppingCartVM.OrderHeader.PostalCode = _shoppingCartVM.OrderHeader.ApplicationUser.PostalCode;
+
+		foreach (var cartItem in _shoppingCartVM.ListCart)
+		{
+			cartItem.Price = GetPriceBasedOnQuantity(cartItem.Count, cartItem.Product.Price, cartItem.Product.Price50, cartItem.Product.Price100);
+			_shoppingCartVM.OrderHeader.OrderTotal += cartItem.Price * cartItem.Count;
+		}
+
+		return View(_shoppingCartVM);
 	}
 
 	public IActionResult Plus(int cartItemId)
