@@ -17,8 +17,8 @@ public class ApplicationDbContext : IdentityDbContext
 	public DbSet<Product> Products { get; set; }
 	public DbSet<Company> Company { get; set; }
 	public DbSet<ShoppingCart> ShoppingCart { get; set; }
-	public DbSet<OrderHeader> OrderHeaders { get; set; }
-	public DbSet<OrderDetail> OrderDetails { get; set; }
+	public DbSet<OrderHeader> OrderHeader { get; set; }
+	public DbSet<OrderDetail> OrderDetail { get; set; }
 
 }
 
