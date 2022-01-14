@@ -32,9 +32,14 @@ public class Repository<T> : IRepository<T> where T : class
 	/// </summary>
 	/// <param name="includeProperties">Format: 'PropertyA, PropertyB, ...'</param>
 	/// <returns></returns>
-	public IEnumerable<T> GetAll(string[]? includeProperties = null)
+	public IEnumerable<T> GetAll(Expression<Func<T, bool>>? filter = null, string[]? includeProperties = null)
 	{
 		IQueryable<T> query = _dbSet;
+		if (filter is not null)
+		{
+			query = query.Where(filter);
+		}
+		
 		if (includeProperties is not null)
 		{
 			foreach(var includeProp in includeProperties)
