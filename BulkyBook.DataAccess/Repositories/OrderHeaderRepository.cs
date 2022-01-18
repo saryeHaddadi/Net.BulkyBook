@@ -33,7 +33,13 @@ public class OrderHeaderRepository : Repository<OrderHeader>, IOrderHeaderReposi
 			{
 				order.PaymentStatus = paymentStatus;
 			}
-			_db.OrderHeader.Update(order);
 		}
+	}
+
+	public void UpdateStripePaymentId(int id, string sessionId, string paymentIntentId)
+	{
+		var order = _db.OrderHeader.FirstOrDefault(u => u.Id == id);
+		order.SessionId = sessionId;
+		order.PaymentIntentId = paymentIntentId;
 	}
 }

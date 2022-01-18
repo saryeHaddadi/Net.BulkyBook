@@ -111,8 +111,8 @@ public class CartController : Controller
 				Count = cart.Count
 			};
 			_unitOfWork.OrderDetail.Add(orderDetail);
-			_unitOfWork.Save();
 		}
+		_unitOfWork.Save();
 
 		// Strip settings
 		var domain = "https://localhost:44323/";
@@ -149,7 +149,8 @@ public class CartController : Controller
 
 		var service = new SessionService();
 		var session = service.Create(options);
-
+		_unitOfWork.OrderHeader.UpdateStripePaymentId(shoppingCartVM.OrderHeader.Id, session.Id, session.PaymentIntentId);
+		_unitOfWork.Save();
 		Response.Headers.Add("Location", session.Url);
 		return new StatusCodeResult(303);
 
@@ -159,6 +160,23 @@ public class CartController : Controller
 		//return RedirectToAction("Index", "Home");
 	}
 
+	public IActionResult OrderConfirmation(int id)
+	{
+		var orderHeader = _unitOfWork.OrderHeader.GetFirstOrDefault(u => u.Id == id);
+		var service = new SessionService();
+		var session = service.Get(orderHeader.SessionId);
+
+		if (string.Equals(session.PaymentStatus, "paid", StringComparison.OrdinalIgnoreCase))
+		{
+			_unitOfWork.OrderHeader.UpdateStatus(id, SD.StatusApproved, SD.PaymentStatusApproved);
+			_unitOfWork.Save();
+		}
+
+		var shoppingCartItems = _unitOfWork.ShoppingCart.GetAll(u => u.ApplicationUserId == orderHeader.ApplicationUserId);
+		_unitOfWork.ShoppingCart.RemoveRange(shoppingCartItems.ToList());
+		_unitOfWork.Save();
+		return View(id);
+	}
 
 	public IActionResult Plus(int cartItemId)
 	{
