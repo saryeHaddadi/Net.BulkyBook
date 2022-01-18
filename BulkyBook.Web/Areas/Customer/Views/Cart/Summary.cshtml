@@ -1,4 +1,6 @@
 ﻿@model ShoppingCartViewModel
+@using Microsoft.Extensions.Options
+@inject IOptions<BulkyBook.Utility.StripeSettings> Sripe
 
 <form method="post">
 	<br />
