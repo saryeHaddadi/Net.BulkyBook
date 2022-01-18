@@ -13,4 +13,15 @@ public static class SD
 	public const string ROLE_ADMIN = "Admin";
 	public const string ROLE_EMPLOYEE = "Employee";
 
+	public const string StatusPending = "Pending";
+	public const string StatusApproved = "Approved";
+	public const string StatusInProcess = "InProcess";
+	public const string StatusCancelled = "Cancelled";
+	public const string StatusRefunded = "Refunded";
+
+	public const string PaymentStatusPending = "Pending";
+	public const string PaymentStatusApproved = "Approved";
+	public const string PaymentStatusDelayedPayement = "ApprovedForDelayedPayement";
+	public const string PaymentStatusRejected = "Rejected";
+
 }

@@ -1,6 +1,7 @@
 ﻿using BulkyBook.DataAccess.IRepositories;
 using BulkyBook.Models;
 using BulkyBook.Models.ViewModels;
+using BulkyBook.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -12,6 +13,7 @@ namespace BulkyBook.Web.Areas.Customer.Controllers;
 public class CartController : Controller
 {
 	private readonly IUnitOfWork _unitOfWork;
+	//[BindProperty]
 	public ShoppingCartViewModel _shoppingCartVM { get; set; }
 	public int _orderTotal { get; set; }
 
@@ -70,6 +72,53 @@ public class CartController : Controller
 
 		return View(_shoppingCartVM);
 	}
+
+	
+	[HttpPost]
+	[ActionName("Summary")]
+	[ValidateAntiForgeryToken]
+	public IActionResult SummaryPost(ShoppingCartViewModel shoppingCartVM)
+	{
+		var claimsIdentity = (ClaimsIdentity)User.Identity;
+		var claim = claimsIdentity.FindFirst(ClaimTypes.NameIdentifier);
+
+		shoppingCartVM.ListCart = _unitOfWork.ShoppingCart.GetAll(
+				u => u.ApplicationUserId == claim.Value,
+				includeProperties: new string[] { nameof(Product) });
+
+		shoppingCartVM.OrderHeader.PaymentStatus = SD.PaymentStatusPending;
+		shoppingCartVM.OrderHeader.OrderStatus = SD.StatusPending;
+		shoppingCartVM.OrderHeader.OrderDate = DateTime.Now;
+		shoppingCartVM.OrderHeader.ApplicationUserId = claim.Value;
+
+		foreach (var cartItem in shoppingCartVM.ListCart)
+		{
+			cartItem.Price = GetPriceBasedOnQuantity(cartItem.Count, cartItem.Product.Price, cartItem.Product.Price50, cartItem.Product.Price100);
+			shoppingCartVM.OrderHeader.OrderTotal += cartItem.Price * cartItem.Count;
+		}
+
+		_unitOfWork.OrderHeader.Add(shoppingCartVM.OrderHeader);
+		_unitOfWork.Save();
+
+		foreach (var cart in shoppingCartVM.ListCart)
+		{
+			var orderDetail = new OrderDetail()
+			{
+				ProductId = cart.ProductId,
+				OrderId = shoppingCartVM.OrderHeader.Id,
+				Price = cart.Price,
+				Count = cart.Count
+			};
+			_unitOfWork.OrderDetail.Add(orderDetail);
+			_unitOfWork.Save();
+		}
+
+		_unitOfWork.ShoppingCart.RemoveRange(shoppingCartVM.ListCart);
+		_unitOfWork.Save();
+
+		return RedirectToAction("Index", "Home");
+	}
+
 
 	public IActionResult Plus(int cartItemId)
 	{
