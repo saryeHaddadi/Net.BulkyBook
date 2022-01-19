@@ -193,6 +193,7 @@ public class CartController : Controller
 		var shoppingCartItems = _unitOfWork.ShoppingCart.GetAll(u => u.ApplicationUserId == orderHeader.ApplicationUserId);
 		_unitOfWork.ShoppingCart.RemoveRange(shoppingCartItems.ToList());
 		_unitOfWork.Save();
+		HttpContext.Session.Clear();
 		return View(id);
 	}
 
