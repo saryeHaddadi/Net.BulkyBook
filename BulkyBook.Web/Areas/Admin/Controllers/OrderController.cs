@@ -4,6 +4,7 @@ using BulkyBook.Models.ViewModels;
 using BulkyBook.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Stripe;
 using System.Security.Claims;
 
 namespace BulkyBook.Web.Areas.Admin.Controllers;
@@ -31,37 +32,94 @@ public class OrderController : Controller
 		orderVM = new OrderViewModel()
 		{
 			OrderHeader = _unitOfWork.OrderHeader.GetFirstOrDefault(u => u.Id == orderId, includeProperties: new string[] { nameof(ApplicationUser) }),
-			OrderDetail = _unitOfWork.OrderDetail.GetAll(u => u.OrderHeader.Id == orderId, includeProperties: new string[] { nameof(Product) }),
+			OrderDetail = _unitOfWork.OrderDetail.GetAll(u => u.OrderHeader.Id == orderId, includeProperties: new string[] { nameof(Models.Product) }),
 		};
 		return View(orderVM);
 	}
 
 	[HttpPost]
+	[Authorize(Roles = SD.ROLE_ADMIN + "," + SD.ROLE_EMPLOYEE)]
 	[ValidateAntiForgeryToken]
 	public IActionResult UpdateOrderDetail()
 	{
-		var orderFromDb = _unitOfWork.OrderHeader.GetFirstOrDefault(u => u.Id == orderVM.OrderHeader.Id, tracked: false);
-		orderFromDb.Name = orderVM.OrderHeader.Name;
-		orderFromDb.PhoneNumber = orderVM.OrderHeader.PhoneNumber;
-		orderFromDb.StreetAdresse = orderVM.OrderHeader.StreetAdresse;
-		orderFromDb.City = orderVM.OrderHeader.City;
-		orderFromDb.State = orderVM.OrderHeader.State;
-		orderFromDb.PostalCode = orderVM.OrderHeader.PostalCode;
+		var orderHeader = _unitOfWork.OrderHeader.GetFirstOrDefault(u => u.Id == orderVM.OrderHeader.Id, tracked: false);
+		orderHeader.Name = orderVM.OrderHeader.Name;
+		orderHeader.PhoneNumber = orderVM.OrderHeader.PhoneNumber;
+		orderHeader.StreetAdresse = orderVM.OrderHeader.StreetAdresse;
+		orderHeader.City = orderVM.OrderHeader.City;
+		orderHeader.State = orderVM.OrderHeader.State;
+		orderHeader.PostalCode = orderVM.OrderHeader.PostalCode;
 		if (orderVM.OrderHeader.Carrier is not null)
         {
-			orderFromDb.Carrier = orderVM.OrderHeader.Carrier;
+			orderHeader.Carrier = orderVM.OrderHeader.Carrier;
         }
 		if (orderVM.OrderHeader.TrackingNumber is not null)
 		{
-			orderFromDb.TrackingNumber = orderVM.OrderHeader.TrackingNumber;
+			orderHeader.TrackingNumber = orderVM.OrderHeader.TrackingNumber;
 		}
 
-		_unitOfWork.OrderHeader.Update(orderFromDb);
+		_unitOfWork.OrderHeader.Update(orderHeader);
 		_unitOfWork.Save();
 		TempData["Success"] = "Order Details Updated Successfully.";
-		return RedirectToAction("Details", "Order", new { orderId = orderFromDb.Id });
+		return RedirectToAction("Details", "Order", new { orderId = orderHeader.Id });
 	}
 
+	[HttpPost]
+	[Authorize(Roles = SD.ROLE_ADMIN + "," + SD.ROLE_EMPLOYEE)]
+	[ValidateAntiForgeryToken]
+	public IActionResult StartProcessing()
+	{
+		_unitOfWork.OrderHeader.UpdateStatus(orderVM.OrderHeader.Id, SD.StatusInProcess);
+		_unitOfWork.Save();
+		TempData["Success"] = "Order Status Updated Successfully.";
+		return RedirectToAction("Details", "Order", new { orderId = orderVM.OrderHeader.Id });
+	}
+
+	[HttpPost]
+	[Authorize(Roles = SD.ROLE_ADMIN + "," + SD.ROLE_EMPLOYEE)]
+	[ValidateAntiForgeryToken]
+	public IActionResult ShipOrder()
+	{
+		var orderHeader = _unitOfWork.OrderHeader.GetFirstOrDefault(u => u.Id == orderVM.OrderHeader.Id, tracked: false);
+		orderHeader.TrackingNumber = orderVM.OrderHeader.TrackingNumber;
+		orderHeader.Carrier = orderVM.OrderHeader.Carrier;
+		orderHeader.OrderStatus = SD.StatusShipped;
+		orderHeader.ShippingDate = DateTime.Now;
+		if(orderHeader.PaymentStatus == SD.PaymentStatusDelayedPayement)
+        {
+			orderHeader.PaymentDueDate = DateTime.Now.AddDays(30);
+        }
+		_unitOfWork.OrderHeader.Update(orderHeader);
+		_unitOfWork.Save();
+		TempData["Success"] = "Order Shipped Successfully.";
+		return RedirectToAction("Details", "Order", new { orderId = orderVM.OrderHeader.Id });
+	}
+
+	[HttpPost]
+	[Authorize(Roles = SD.ROLE_ADMIN + "," + SD.ROLE_EMPLOYEE)]
+	[ValidateAntiForgeryToken]
+	public IActionResult CancelOrder()
+	{
+		var orderHeader = _unitOfWork.OrderHeader.GetFirstOrDefault(u => u.Id == orderVM.OrderHeader.Id, tracked: false);
+		if (orderHeader.PaymentStatus == SD.PaymentStatusApproved)
+        {
+			var options = new Stripe.RefundCreateOptions
+			{
+				Reason = RefundReasons.RequestedByCustomer,
+				PaymentIntent = orderHeader.PaymentIntentId
+			};
+			var service = new RefundService();
+			var refund = service.Create(options);
+			_unitOfWork.OrderHeader.UpdateStatus(orderHeader.Id, SD.StatusCancelled, SD.StatusRefunded);
+        }
+        else
+        {
+			_unitOfWork.OrderHeader.UpdateStatus(orderHeader.Id, SD.StatusCancelled, SD.StatusCancelled);
+		}
+		_unitOfWork.Save();
+		TempData["Success"] = "Order Cancelled Successfully.";
+		return RedirectToAction("Details", "Order", new { orderId = orderVM.OrderHeader.Id });
+	}
 
 	#region API Calls
 	[HttpGet]
