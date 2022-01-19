@@ -5,6 +5,7 @@ using BulkyBook.Utility;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Stripe;
+using Stripe.Checkout;
 using System.Security.Claims;
 
 namespace BulkyBook.Web.Areas.Admin.Controllers;
@@ -37,6 +38,72 @@ public class OrderController : Controller
 		return View(orderVM);
 	}
 
+	[ActionName("Details")]
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public IActionResult DetailsPayNow()
+	{
+		orderVM.OrderHeader = _unitOfWork.OrderHeader.GetFirstOrDefault(u => u.Id == orderVM.OrderHeader.Id, includeProperties: new string[] { nameof(ApplicationUser) });
+		orderVM.OrderDetail = _unitOfWork.OrderDetail.GetAll(u => u.OrderHeader.Id == orderVM.OrderHeader.Id, includeProperties: new string[] { nameof(ApplicationUser) });
+
+		var domain = "https://localhost:44323/";
+		var options = new SessionCreateOptions
+		{
+			PaymentMethodTypes = new List<string>
+			{
+				"card",
+			},
+			LineItems = new List<SessionLineItemOptions>(),
+			Mode = "payment",
+			SuccessUrl = domain + $"Admin/Order/PaymentConfirmation?orderHeaderId={orderVM.OrderHeader.Id}",
+			CancelUrl = domain + $"Admin/Order/Details?orderId={orderVM.OrderHeader.Id}",
+		};
+
+		foreach (var item in orderVM.OrderDetail)
+		{
+			var sessionLineItem = new SessionLineItemOptions
+			{
+				PriceData = new SessionLineItemPriceDataOptions
+				{
+					UnitAmount = (long)(item.Price * 100), // 20.00 -> 2000
+					Currency = "usd",
+					ProductData = new SessionLineItemPriceDataProductDataOptions
+					{
+						Name = item.Product.Title,
+					},
+
+				},
+				Quantity = item.Count,
+			};
+			options.LineItems.Add(sessionLineItem);
+		}
+
+		var service = new SessionService();
+		var session = service.Create(options);
+		_unitOfWork.OrderHeader.UpdateStripePaymentId(orderVM.OrderHeader.Id, session.Id, session.PaymentIntentId);
+		_unitOfWork.Save();
+		Response.Headers.Add("Location", session.Url);
+		return new StatusCodeResult(303);
+	}
+
+	public IActionResult PaymentConfirmation(int orderHeaderId)
+	{
+		var orderHeader = _unitOfWork.OrderHeader.GetFirstOrDefault(u => u.Id == orderHeaderId);
+		if (orderHeader.PaymentStatus == SD.PaymentStatusDelayedPayement)
+		{
+			var service = new SessionService();
+			var session = service.Get(orderHeader.SessionId);
+
+			if (string.Equals(session.PaymentStatus, "paid", StringComparison.OrdinalIgnoreCase))
+			{
+				_unitOfWork.OrderHeader.UpdateStatus(orderHeaderId, orderHeader.OrderStatus, SD.PaymentStatusApproved);
+				_unitOfWork.Save();
+			}
+		}
+
+		return View(orderHeaderId);
+	}
+
 	[HttpPost]
 	[Authorize(Roles = SD.ROLE_ADMIN + "," + SD.ROLE_EMPLOYEE)]
 	[ValidateAntiForgeryToken]
@@ -50,9 +117,9 @@ public class OrderController : Controller
 		orderHeader.State = orderVM.OrderHeader.State;
 		orderHeader.PostalCode = orderVM.OrderHeader.PostalCode;
 		if (orderVM.OrderHeader.Carrier is not null)
-        {
+		{
 			orderHeader.Carrier = orderVM.OrderHeader.Carrier;
-        }
+		}
 		if (orderVM.OrderHeader.TrackingNumber is not null)
 		{
 			orderHeader.TrackingNumber = orderVM.OrderHeader.TrackingNumber;
@@ -143,6 +210,8 @@ public class OrderController : Controller
 			case "inprocess":
 				orderHeaders = orderHeaders.Where(u => u.PaymentStatus == SD.PaymentStatusDelayedPayement);
 				break;
+			// Note: the flow for Pending & Completed is not perfect.
+			// Our point here is to show how .net is binding everything together.
 			case "pending":
 				orderHeaders = orderHeaders.Where(u => u.OrderStatus == SD.StatusInProcess);
 				break;
