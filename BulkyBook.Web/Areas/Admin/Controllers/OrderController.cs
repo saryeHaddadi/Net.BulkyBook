@@ -31,9 +31,35 @@ public class OrderController : Controller
 		orderVM = new OrderViewModel()
 		{
 			OrderHeader = _unitOfWork.OrderHeader.GetFirstOrDefault(u => u.Id == orderId, includeProperties: new string[] { nameof(ApplicationUser) }),
-			OrderDetail = _unitOfWork.OrderDetail.GetAll(u => u.Id == orderId, includeProperties: new string[] { nameof(Product) }),
+			OrderDetail = _unitOfWork.OrderDetail.GetAll(u => u.OrderHeader.Id == orderId, includeProperties: new string[] { nameof(Product) }),
 		};
 		return View(orderVM);
+	}
+
+	[HttpPost]
+	[ValidateAntiForgeryToken]
+	public IActionResult UpdateOrderDetail()
+	{
+		var orderFromDb = _unitOfWork.OrderHeader.GetFirstOrDefault(u => u.Id == orderVM.OrderHeader.Id, tracked: false);
+		orderFromDb.Name = orderVM.OrderHeader.Name;
+		orderFromDb.PhoneNumber = orderVM.OrderHeader.PhoneNumber;
+		orderFromDb.StreetAdresse = orderVM.OrderHeader.StreetAdresse;
+		orderFromDb.City = orderVM.OrderHeader.City;
+		orderFromDb.State = orderVM.OrderHeader.State;
+		orderFromDb.PostalCode = orderVM.OrderHeader.PostalCode;
+		if (orderVM.OrderHeader.Carrier is not null)
+        {
+			orderFromDb.Carrier = orderVM.OrderHeader.Carrier;
+        }
+		if (orderVM.OrderHeader.TrackingNumber is not null)
+		{
+			orderFromDb.TrackingNumber = orderVM.OrderHeader.TrackingNumber;
+		}
+
+		_unitOfWork.OrderHeader.Update(orderFromDb);
+		_unitOfWork.Save();
+		TempData["Success"] = "Order Details Updated Successfully.";
+		return RedirectToAction("Details", "Order", new { orderId = orderFromDb.Id });
 	}
 
 
