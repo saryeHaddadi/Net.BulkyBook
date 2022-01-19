@@ -34,11 +34,11 @@ builder.Services.AddSession(options =>
 	options.Cookie.HttpOnly = true;
 	options.Cookie.IsEssential = true;
 });
-builder.Services.AddAuthentication().AddFacebook(options =>
-{
-	options.AppId = ""; // TODO
-	options.AppSecret = ""; // TODO
-});
+//builder.Services.AddAuthentication().AddFacebook(options =>
+//{
+//	options.AppId = ""; // TODO
+//	options.AppSecret = ""; // TODO
+//});
 
 var app = builder.Build();
 
